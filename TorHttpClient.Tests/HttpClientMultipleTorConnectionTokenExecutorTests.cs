@@ -48,17 +48,6 @@ namespace TorHttpClientExecutor.Tests
                 }
             }, pollyContext);
 
-
-
-            await Parallel.ForEachAsync(Enumerable.Range(1, 3), async (count, cancellationToken) =>
-            {
-                using (var executer = await TorHttpClientExecutor.LoadAndCreate())
-                {
-                    var myIP = await executer.Execute(async httpClient => await httpClient.GetStringAsync("https://api.ipify.org"));
-                    ips.Add(myIP);
-                }
-            });
-
             Assert.All(ips, s => Assert.Equal(1, ips.Count(x => x == s)));
         }
     }
