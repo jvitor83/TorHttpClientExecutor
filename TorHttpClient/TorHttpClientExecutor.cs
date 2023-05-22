@@ -4,14 +4,36 @@ using System.Net.Http;
 
 namespace TorHttpClientExecutor
 {
-    public class TorWebProxyHandlerExecutor : HttpClientHandler
+    public class TorWebProxyHandlerExecutor : HttpClientHandler, IDisposable
     {
         public TorWebProxyHandlerExecutor(TorHttpClientExecutor executor)
         {
             this.Executor = executor;
-            this.Proxy = new WebProxy(new Uri("socks5://localhost:" + this.Executor.TorSettings.TorSocksPort));
+            this.Proxy = new WebProxy(new Uri("socks5://localhost:" + this.Executor.TorSettings.TorSettings.SocksPort));
         }
         public TorHttpClientExecutor Executor { get; }
+
+        private bool disposedValue;
+
+        protected new virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    Executor.Dispose();
+                    base.Dispose(disposing);
+                }
+
+                disposedValue = true;
+            }
+        }
+        public new virtual void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
     //public class TorWebProxyHandler : HttpClientHandler
     //{
