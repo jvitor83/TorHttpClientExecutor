@@ -11,8 +11,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
+[assembly: CollectionBehavior(CollectionBehavior.CollectionPerClass, DisableTestParallelization = true)]
+
+
 namespace TorHttpClientExecutor.Tests
 {
+
     public class HttpClient_Polly_Test
     {
         const string TestClient = "TestClient";
@@ -60,6 +64,39 @@ namespace TorHttpClientExecutor.Tests
             Assert.True(_isRetryCalled);
             //Assert.All(ips, s => Assert.Equal(1, ips.Count(x => x == s)));
         }
+
+
+
+        [Fact]
+        public async Task Given_A_Retry_Policy_Has_Been_Registered_For_A_HttpClient_When_The_HttpRequest_Fails_Then_The_Request_Is_Retried_Different_IPs()
+        {
+            var ips = new List<string>();
+
+
+
+            // Act
+            await Parallel.ForEachAsync(Enumerable.Range(1, 3), async (count, cancellationToken) =>
+            {
+                HttpResponseMessage result = null;
+                var request = new HttpRequestMessage(HttpMethod.Get, "https://api.ipify.org");
+                IAsyncPolicy<HttpResponseMessage> asyncPolicy = GetRetryPolicy();
+                var a = await asyncPolicy.ExecuteAsync(async () =>
+                {
+                    using (var executer = await TorHttpClientExecutor.LoadAndCreate())
+                    {
+                        var result = await executer.Execute(async httpClient => await httpClient.SendAsync(request));
+                        return result;
+                    }
+                });
+                var ip = await a.Content.ReadAsStringAsync();
+                ips.Add(ip);
+            });
+
+
+            // Assert
+            Assert.All(ips, s => Assert.Equal(1, ips.Count(x => x == s)));
+        }
+
 
         public IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
         {
