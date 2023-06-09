@@ -84,7 +84,7 @@ namespace TorHttpClientExecutor.Tests
                 {
                     using (var executer = await TorHttpClientExecutor.LoadAndCreate())
                     {
-                        var result = await executer.Execute(async httpClient => await httpClient.SendAsync(request));
+                        var result = await executer.ExecuteAsync(async httpClient => await httpClient.SendAsync(request));
                         return result;
                     }
                 });

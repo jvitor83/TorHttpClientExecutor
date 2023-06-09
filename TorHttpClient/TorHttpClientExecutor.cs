@@ -51,14 +51,53 @@ namespace TorHttpClientExecutor
             this.torProxy = torProxy ?? throw new ArgumentNullException(nameof(torProxy));
             this.torSettings = torSettings ?? throw new ArgumentNullException(nameof(torSettings));
         }
-        public async Task<T> Execute<T>(Func<HttpClient, Task<T>> action)
+        public async Task<T> ExecuteAsync<T>(Func<HttpClient, Task<T>> action)
         {
-            TorWebProxyHandlerExecutor handler = new TorWebProxyHandlerExecutor(this);
-            var httpClient = HttpClientFactory.Create(handler); //new HttpClient(GetHttpClientHandler());
-            var task = action.Invoke(httpClient);
-            var response = await task;
-            return response;
+            using (TorWebProxyHandlerExecutor handler = new TorWebProxyHandlerExecutor(this))
+            {
+                using (var httpClient = HttpClientFactory.Create(handler))
+                {
+                    var task = action.Invoke(httpClient);
+                    var response = await task;
+                    return response;
+                }
+            }
         }
+
+        public async Task ExecuteAsync(Func<HttpClient, Task> action)
+        {
+            using (TorWebProxyHandlerExecutor handler = new TorWebProxyHandlerExecutor(this))
+            {
+                using (var httpClient = HttpClientFactory.Create(handler))
+                {
+                    await action.Invoke(httpClient);
+                }
+            }
+        }
+
+        public T Execute<T>(Func<HttpClient, T> action)
+        {
+            using (TorWebProxyHandlerExecutor handler = new TorWebProxyHandlerExecutor(this))
+            {
+                using (var httpClient = HttpClientFactory.Create(handler))
+                {
+                    var task = action.Invoke(httpClient);
+                    return task;
+                }
+            }
+        }
+
+        public void Execute(Action<HttpClient> action)
+        {
+            using (TorWebProxyHandlerExecutor handler = new TorWebProxyHandlerExecutor(this))
+            {
+                using (var httpClient = HttpClientFactory.Create(handler))
+                {
+                    action.Invoke(httpClient);
+                }
+            }
+        }
+
         public TorSharpProxy TorProxy { get => torProxy; }
         public TorSharpSettings TorSettings { get => torSettings; }
 
@@ -73,6 +112,7 @@ namespace TorHttpClientExecutor
                 if (disposing)
                 {
                     torProxy.Stop();
+                    //torProxy.Stop();
                     torProxy.Dispose();
                 }
 
@@ -96,18 +136,22 @@ namespace TorHttpClientExecutor
 
         public static async Task<TorHttpClientExecutor> LoadAndCreate(TorSharpSettings? torSharpSettings = null, HttpClient? httpClient = null)
         {
+            bool log = torSharpSettings == null ? false : torSharpSettings.WriteToConsole;
             _executionNumber = torSharpSettings?.TorSettings?.SocksPort ?? 10000;
             int socksPort = _executionNumber;
             int controlPort = socksPort + 1;
 
             torSharpSettings ??= new();
 
-            // Share the same downloaded tools with all instances.
-            httpClient = httpClient ?? new();
-            using (httpClient)
+            if (!Directory.Exists(torSharpSettings.ZippedToolsDirectory))
             {
-                var fetcher = new TorSharpToolFetcher(torSharpSettings, httpClient);
-                await fetcher.FetchAsync();
+                // Share the same downloaded tools with all instances.
+                httpClient = httpClient ?? new();
+                using (httpClient)
+                {
+                    var fetcher = new TorSharpToolFetcher(torSharpSettings, httpClient);
+                    await fetcher.FetchAsync();
+                }
             }
 
             lock (Locker)
@@ -133,6 +177,9 @@ namespace TorHttpClientExecutor
                     // The ports should not overlap either.
                     TorSettings = { SocksPort = socksPort, ControlPort = controlPort },
                     PrivoxySettings = { Disable = true },
+
+                    // write to console
+                    WriteToConsole = log,
                 };
 
                 TorSharpProxy TorProxy = new TorSharpProxy(torSettings);

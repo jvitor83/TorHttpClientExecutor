@@ -9,9 +9,9 @@
     <Description>Make HttpClient requests from Tor Network</Description>
     <PackageProjectUrl>https://github.com/jvitor83/TorHttpClientExecutor</PackageProjectUrl>
     <PackageReadmeFile>Readme.md</PackageReadmeFile>
-    <AssemblyVersion>1.0.1.0</AssemblyVersion>
-    <FileVersion>1.0.1.0</FileVersion>
-    <Version>$(VersionPrefix)1.0.1</Version>
+    <AssemblyVersion>1.0.2.0</AssemblyVersion>
+    <FileVersion>1.0.2.0</FileVersion>
+    <Version>$(VersionPrefix)1.0.2</Version>
   </PropertyGroup>
 
   <ItemGroup>
